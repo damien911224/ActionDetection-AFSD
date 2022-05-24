@@ -208,3 +208,222 @@ class Unit1D(nn.Module):
         if self._activation_fn is not None:
             x = self._activation_fn(x)
         return x
+
+
+class ScaleTime(nn.Module):
+    def __init__(self, channels):
+        super(ScaleTime, self).__init__()
+        self.scale_conv1 = nn.Sequential((
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(1, 1),
+                      stride=(1, 1),
+                      padding=(0, 0),
+                      dilation=(1, 1),
+                      bias=True),
+            nn.GroupNorm(32, channels),
+            nn.ReLU(inplace=True)))
+        self.scale_conv2 = nn.Sequential((
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(3, 1),
+                      stride=(1, 1),
+                      padding=(1, 0),
+                      dilation=(1, 1),
+                      bias=True),
+            nn.GroupNorm(32, channels),
+            nn.ReLU(inplace=True)))
+        self.scale_conv3 = nn.Sequential((
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(3, 1),
+                      stride=(1, 1),
+                      padding=(2, 0),
+                      dilation=(2, 1),
+                      bias=True),
+            nn.GroupNorm(32, channels),
+            nn.ReLU(inplace=True)))
+        self.scale_conv4 = nn.Sequential((
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(5, 1),
+                      stride=(1, 1),
+                      padding=(2, 0),
+                      dilation=(1, 1),
+                      bias=True),
+            nn.GroupNorm(32, channels),
+            nn.ReLU(inplace=True)))
+
+        self.scale_selection = nn.Sequential((
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(1, 1),
+                      stride=(1, 1),
+                      padding=(0, 0),
+                      dilation=(1, 1),
+                      bias=True),
+            nn.GroupNorm(32, channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(channels,
+                      4,
+                      kernel_size=(1, 1),
+                      stride=(1, 1),
+                      padding=(0, 0),
+                      dilation=(1, 1),
+                      bias=True)
+        ))
+        self.scale_final_conv = nn.Sequential((
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(1, 1),
+                      stride=(1, 1),
+                      padding=(0, 0),
+                      dilation=(1, 1),
+                      bias=True),
+            nn.GroupNorm(32, channels),
+            nn.ReLU(inplace=True)))
+
+        self.time_conv1 = nn.Sequential((
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(1, 3),
+                      stride=(1, 1),
+                      padding=(0, 1),
+                      dilation=(1, 1),
+                      bias=True),
+            nn.GroupNorm(32, channels),
+            nn.ReLU(inplace=True)))
+        self.time_conv2 = nn.Sequential((
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(1, 3),
+                      stride=(1, 1),
+                      padding=(0, 2),
+                      dilation=(1, 2),
+                      bias=True),
+            nn.GroupNorm(32, channels),
+            nn.ReLU(inplace=True)))
+        self.time_conv3 = nn.Sequential((
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(1, 3),
+                      stride=(1, 1),
+                      padding=(0, 3),
+                      dilation=(1, 3),
+                      bias=True),
+            nn.GroupNorm(32, channels),
+            nn.ReLU(inplace=True)))
+        self.time_conv4 = nn.Sequential((
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(1, 3),
+                      stride=(1, 1),
+                      padding=(0, 4),
+                      dilation=(1, 4),
+                      bias=True),
+            nn.GroupNorm(32, channels),
+            nn.ReLU(inplace=True)))
+
+        self.time_selection = nn.Sequential((
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(1, 1),
+                      stride=(1, 1),
+                      padding=(0, 0),
+                      dilation=(1, 1),
+                      bias=True),
+            nn.GroupNorm(32, channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(channels,
+                      4,
+                      kernel_size=(1, 1),
+                      stride=(1, 1),
+                      padding=(0, 0),
+                      dilation=(1, 1),
+                      bias=True)
+        ))
+        self.time_final_conv = nn.Sequential((
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(1, 1),
+                      stride=(1, 1),
+                      padding=(0, 0),
+                      dilation=(1, 1),
+                      bias=True),
+            nn.GroupNorm(32, channels),
+            nn.ReLU(inplace=True)))
+
+        self.feed_forward = nn.Sequential((
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(1, 1),
+                      stride=(1, 1),
+                      padding=(0, 0),
+                      dilation=(1, 1),
+                      bias=True),
+            nn.GroupNorm(32, channels),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.1),
+            nn.Conv2d(channels,
+                      channels,
+                      kernel_size=(1, 1),
+                      stride=(1, 1),
+                      padding=(0, 0),
+                      dilation=(1, 1),
+                      bias=True)
+        ))
+
+        self.norm1 = nn.GroupNorm(32, channels)
+        self.dropout1 = nn.Dropout(0.1)
+        self.norm2 = nn.GroupNorm(32, channels)
+        self.dropout2 = nn.Dropout(0.1)
+        self.norm3 = nn.GroupNorm(32, channels)
+        self.dropout3 = nn.Dropout(0.1)
+
+    def forward(self, x):
+        scale_x1 = self.scale_conv1(x)
+        scale_x2 = self.scale_conv1(x)
+        scale_x3 = self.scale_conv1(x)
+        scale_x4 = self.scale_conv1(x)
+
+        pooled = F.avg_pool2d(x, kernel_size=(5, 1), stride=(1, 1), padding=(2, 0))
+        # N, 4, S, T
+        pooled = self.scale_selection(pooled)
+        # N, 1, 4, S, T
+        pooled = F.softmax(pooled.unsqueeze(1), dim=2)
+        # N, C, 4, S, T
+        outputs = torch.stack((scale_x1, scale_x2, scale_x3, scale_x4), dim=2)
+        # N, C, S, T
+        outputs = torch.sum(pooled * outputs, dim=2).squeeze(2)
+        outputs = self.scale_final_conv(outputs)
+        outputs = self.dropout1(outputs)
+
+        outputs = outputs + x
+        x = self.norm1(outputs)
+
+        time_x1 = self.time_conv1(x)
+        time_x2 = self.time_conv1(x)
+        time_x3 = self.time_conv1(x)
+        time_x4 = self.time_conv1(x)
+
+        pooled = F.avg_pool2d(x, kernel_size=(1, 9), stride=(1, 1), padding=(0, 4))
+        # N, 4, S, T
+        pooled = self.time_selection(pooled)
+        # N, 1, 4, S, T
+        pooled = F.softmax(pooled.unsqueeze(1), dim=2)
+        # N, C, 4, S, T
+        outputs = torch.stack((time_x1, time_x2, time_x3, time_x4), dim=2)
+        # N, C, S, T
+        outputs = torch.sum(pooled * outputs, dim=2).squeeze(2)
+        outputs = self.time_final_conv(outputs)
+        outputs = self.dropout2(outputs)
+
+        outputs = outputs + x
+        x = self.norm2(outputs)
+
+        outputs = self.feed_forward(x)
+        outputs = self.dropout3(outputs)
+        outputs = outputs + x
+        outputs = self.norm3(outputs)
+
+        return outputs
