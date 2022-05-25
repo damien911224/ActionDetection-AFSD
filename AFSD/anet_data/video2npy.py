@@ -34,7 +34,7 @@ def sub_processor(pid, files):
                 break
             imgs.append(frame[:, :, ::-1])
         if count != len(imgs):
-            print(len(images))
+            print(len(imgs))
             print('{} frame num is less'.format(file_name))
         imgs = np.stack(imgs)
         print(imgs.shape)
