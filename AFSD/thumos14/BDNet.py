@@ -256,22 +256,22 @@ class CoarsePyramid(nn.Module):
             )
             t = t // 2
 
-        # self.upscaling_layers = \
-        #     nn.ModuleList((
-        #         nn.Sequential(
-        #             Unit1D(
-        #                 in_channels=out_channels,
-        #                 output_channels=out_channels,
-        #                 kernel_shape=1,
-        #                 stride=1,
-        #                 use_bias=True,
-        #                 activation_fn=None
-        #             ),
-        #             nn.GroupNorm(32, out_channels),
-        #             nn.ReLU(inplace=True)
-        #         ) for _ in range(layer_num)))
-        #
-        # self.scaletime_blocks = nn.ModuleList((ScaleTime()) for _ in range(3))
+        self.upscaling_layers = \
+            nn.ModuleList((
+                nn.Sequential(
+                    Unit1D(
+                        in_channels=out_channels,
+                        output_channels=out_channels,
+                        kernel_shape=1,
+                        stride=1,
+                        use_bias=True,
+                        activation_fn=None
+                    ),
+                    nn.GroupNorm(32, out_channels),
+                    nn.ReLU(inplace=True)
+                ) for _ in range(layer_num)))
+
+        self.scaletime_blocks = nn.ModuleList((ScaleTime()) for _ in range(3))
 
     def forward(self, feat_dict, ssl=False):
         pyramid_feats = []
@@ -307,33 +307,35 @@ class CoarsePyramid(nn.Module):
         start = start_feat.permute(0, 2, 1).contiguous()
         end = end_feat.permute(0, 2, 1).contiguous()
 
-        # T = pyramid_feats[0].shape[-1]
-        # original_shapes = list()
-        # new_pyramid_feats = list()
-        # for i, feat in enumerate(pyramid_feats):
-        #     t = feat.shape[-1]
-        #     original_shapes.append(t)
-        #     new_feat = self.upscaling_layers[i](feat)
-        #     if i >= 1:
-        #         new_feat = F.interpolate(new_feat.unsqueeze(-1), (T, 1)).squeeze(-1)
-        #     new_pyramid_feats.append(new_feat)
-        # # N, C, S, T
-        # pyramid_feats = torch.stack(new_pyramid_feats, dim=2)
-        #
-        # for i in range(3):
-        #     pyramid_feats = self.scaletime_blocks[i](pyramid_feats)
-        #
-        # pyramid_feats = torch.unbind(pyramid_feats, dim=2)
-        # new_pyramid_feats = list()
-        # for i, feat in enumerate(pyramid_feats):
-        #     t = original_shapes[i]
-        #     if i >= 1:
-        #         new_feat = F.interpolate(feat.unsqueeze(-1), (t, 1)).squeeze(-1)
-        #     else:
-        #         new_feat = feat
-        #     new_pyramid_feats.append(new_feat)
-        # pyramid_feats = new_pyramid_feats
-        #
+        split = 0
+        T = pyramid_feats[0].shape[-1]
+        original_shapes = list()
+        new_pyramid_feats = list()
+        for i, feat in enumerate(pyramid_feats):
+            t = feat.shape[-1]
+            original_shapes.append(t)
+            new_feat = self.upscaling_layers[i](feat)
+            if i >= 1:
+                new_feat = F.interpolate(new_feat.unsqueeze(-1), (T, 1)).squeeze(-1)
+            new_pyramid_feats.append(new_feat)
+        # N, C, S, T
+        pyramid_feats = torch.stack(new_pyramid_feats, dim=2)
+
+        for i in range(3):
+            pyramid_feats = self.scaletime_blocks[i](pyramid_feats)
+
+        pyramid_feats = torch.unbind(pyramid_feats, dim=2)
+        new_pyramid_feats = list()
+        for i, feat in enumerate(pyramid_feats):
+            t = original_shapes[i]
+            if i >= 1:
+                new_feat = F.interpolate(feat.unsqueeze(-1), (t, 1)).squeeze(-1)
+            else:
+                new_feat = feat
+            new_pyramid_feats.append(new_feat)
+        pyramid_feats = new_pyramid_feats
+        split = 0
+
         # for i, feat in enumerate(pyramid_feats):
         #     # prior = torch.Tensor([[(c + 0.5) / t] for c in range(t)]).view(-1, 1).to(feat.device)
         #     # priors.append(prior)
