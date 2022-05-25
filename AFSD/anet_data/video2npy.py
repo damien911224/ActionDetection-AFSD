@@ -27,7 +27,6 @@ def sub_processor(pid, files):
         target_file = os.path.join(output_dir, file_name + '.npy')
         cap = cv2.VideoCapture(os.path.join(video_dir, file))
         count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-        print(file_name)
         imgs = []
         while True:
             ret, frame = cap.read()
@@ -35,6 +34,7 @@ def sub_processor(pid, files):
                 break
             imgs.append(frame[:, :, ::-1])
         if count != len(imgs):
+            print(len(images))
             print('{} frame num is less'.format(file_name))
         imgs = np.stack(imgs)
         print(imgs.shape)
