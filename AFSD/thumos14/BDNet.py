@@ -319,6 +319,7 @@ class CoarsePyramid(nn.Module):
             if i >= 1:
                 new_feat = F.interpolate(new_feat.unsqueeze(-1), (T, 1)).squeeze(-1)
             new_pyramid_feats.append(new_feat)
+        print("origin", original_shapes)
         # N, C, S, T
         pyramid_feats = torch.stack(new_pyramid_feats, dim=2)
         print("Upscaled: ", pyramid_feats.shape)
