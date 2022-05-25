@@ -272,6 +272,7 @@ class CoarsePyramid(nn.Module):
                 ) for _ in range(layer_num)))
 
         self.scaletime_blocks = nn.ModuleList((ScaleTime(channels=out_channels) for _ in range(3)))
+        print("!!!")
 
     def forward(self, feat_dict, ssl=False):
         pyramid_feats = []
