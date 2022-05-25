@@ -211,6 +211,7 @@ class Unit1D(nn.Module):
 
 
 class ScaleTime(nn.Module):
+
     def __init__(self, channels):
         super(ScaleTime, self).__init__()
         self.scale_conv1 = nn.Sequential((

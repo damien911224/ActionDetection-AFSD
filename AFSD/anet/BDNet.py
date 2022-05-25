@@ -248,22 +248,22 @@ class CoarsePyramid(nn.Module):
             )
             t = t // 2
 
-        self.upscaling_layers = \
-            nn.ModuleList((
-                nn.Sequential(
-                    Unit1D(
-                        in_channels=out_channels,
-                        output_channels=out_channels,
-                        kernel_shape=1,
-                        stride=1,
-                        use_bias=True,
-                        activation_fn=None
-                    ),
-                    nn.GroupNorm(32, out_channels),
-                    nn.ReLU(inplace=True)
-                ) for _ in range(layer_num)))
-
-        self.scaletime_blocks = nn.ModuleList((ScaleTime()) for _ in range(3))
+        # self.upscaling_layers = \
+        #     nn.ModuleList((
+        #         nn.Sequential(
+        #             Unit1D(
+        #                 in_channels=out_channels,
+        #                 output_channels=out_channels,
+        #                 kernel_shape=1,
+        #                 stride=1,
+        #                 use_bias=True,
+        #                 activation_fn=None
+        #             ),
+        #             nn.GroupNorm(32, out_channels),
+        #             nn.ReLU(inplace=True)
+        #         ) for _ in range(layer_num)))
+        #
+        # self.scaletime_blocks = nn.ModuleList((ScaleTime()) for _ in range(3))
 
     def forward(self, feat_dict, ssl=False):
         pyramid_feats = []
@@ -293,101 +293,101 @@ class CoarsePyramid(nn.Module):
         start = start_feat.permute(0, 2, 1).contiguous()
         end = end_feat.permute(0, 2, 1).contiguous()
 
-        T = pyramid_feats[0].shape[-1]
-        original_shapes = list()
-        new_pyramid_feats = list()
-        for i, feat in enumerate(pyramid_feats):
-            t = feat.shape[-1]
-            original_shapes.append(t)
-            new_feat = self.upscaling_layers[i](feat)
-            if i >= 1:
-                new_feat = F.interpolate(new_feat.unsqueeze(-1), (T, 1)).squeeze(-1)
-            new_pyramid_feats.append(new_feat)
-        # N, C, S, T
-        pyramid_feats = torch.stack(new_pyramid_feats, dim=2)
-
-        for i in range(3):
-            pyramid_feats = self.scaletime_blocks[i](pyramid_feats)
-
-        pyramid_feats = torch.unbind(pyramid_feats, dim=2)
-        new_pyramid_feats = list()
-        for i, feat in enumerate(pyramid_feats):
-            t = original_shapes[i]
-            if i >= 1:
-                new_feat = F.interpolate(feat.unsqueeze(-1), (t, 1)).squeeze(-1)
-            else:
-                new_feat = feat
-            new_pyramid_feats.append(new_feat)
-        pyramid_feats = new_pyramid_feats
-
-        for i, feat in enumerate(pyramid_feats):
-            # prior = torch.Tensor([[(c + 0.5) / t] for c in range(t)]).view(-1, 1).to(feat.device)
-            # priors.append(prior)
-            loc_feat = self.loc_tower(feat)
-            conf_feat = self.conf_tower(feat)
-            locs.append(
-                self.loc_heads[i](self.loc_head(loc_feat))
-                .view(batch_num, 2, -1)
-                .permute(0, 2, 1).contiguous() * fpn_strides[i]
-            )
-            confs.append(
-                self.conf_head(conf_feat).view(batch_num, num_classes, -1)
-                    .permute(0, 2, 1).contiguous()
-            )
-
-            t = feat.size(2)
-            with torch.no_grad():
-                segments = locs[-1] / self.frame_num * t
-                priors = self.priors[i][:, :1].expand(batch_num, t, 1).to(feat.device)
-                new_priors = torch.round(priors * t - 0.5)
-                plen = segments[:, :, :1] + segments[:, :, 1:]
-                in_plen = torch.clamp(plen / 4.0, min=1.0)
-                out_plen = torch.clamp(plen / 10.0, min=1.0)
-
-                l_segment = new_priors - segments[:, :, :1]
-                r_segment = new_priors + segments[:, :, 1:]
-                segments = torch.cat([
-                    torch.round(l_segment - out_plen),
-                    torch.round(l_segment + in_plen),
-                    torch.round(r_segment - in_plen),
-                    torch.round(r_segment + out_plen)
-                ], dim=-1)
-
-                decoded_segments = torch.cat(
-                    [priors[:, :, :1] * self.frame_num - locs[-1][:, :, :1],
-                     priors[:, :, :1] * self.frame_num + locs[-1][:, :, 1:]],
-                    dim=-1)
-                plen = decoded_segments[:, :, 1:] - decoded_segments[:, :, :1] + 1.0
-                in_plen = torch.clamp(plen / 4.0, min=1.0)
-                out_plen = torch.clamp(plen / 10.0, min=1.0)
-                frame_segments = torch.cat([
-                    torch.round(decoded_segments[:, :, :1] - out_plen),
-                    torch.round(decoded_segments[:, :, :1] + in_plen),
-                    torch.round(decoded_segments[:, :, 1:] - in_plen),
-                    torch.round(decoded_segments[:, :, 1:] + out_plen)
-                ], dim=-1)
-
-            loc_prop_feat, loc_prop_feat_ = self.loc_proposal_branch(loc_feat, frame_level_feat,
-                                                                     segments, frame_segments)
-            conf_prop_feat, conf_prop_feat_ = self.conf_proposal_branch(conf_feat, frame_level_feat,
-                                                                        segments, frame_segments)
-            if i == 0:
-                trip.extend([loc_prop_feat_.clone(), conf_prop_feat_.clone()])
-                ndim = loc_prop_feat_.size(1) // 2
-                start_loc_prop = loc_prop_feat_[:, :ndim, ].permute(0, 2, 1).contiguous()
-                end_loc_prop = loc_prop_feat_[:, ndim:, ].permute(0, 2, 1).contiguous()
-                start_conf_prop = conf_prop_feat_[:, :ndim, ].permute(0, 2, 1).contiguous()
-                end_conf_prop = conf_prop_feat_[:, ndim:, ].permute(0, 2, 1).contiguous()
-                if ssl:
-                    return trip
-            prop_locs.append(self.prop_loc_head(loc_prop_feat).view(batch_num, 2, -1)
-                             .permute(0, 2, 1).contiguous())
-            prop_confs.append(self.prop_conf_head(conf_prop_feat).view(batch_num, num_classes, -1)
-                              .permute(0, 2, 1).contiguous())
-            centers.append(
-                self.center_head(loc_prop_feat).view(batch_num, 1, -1)
-                    .permute(0, 2, 1).contiguous()
-            )
+        # T = pyramid_feats[0].shape[-1]
+        # original_shapes = list()
+        # new_pyramid_feats = list()
+        # for i, feat in enumerate(pyramid_feats):
+        #     t = feat.shape[-1]
+        #     original_shapes.append(t)
+        #     new_feat = self.upscaling_layers[i](feat)
+        #     if i >= 1:
+        #         new_feat = F.interpolate(new_feat.unsqueeze(-1), (T, 1)).squeeze(-1)
+        #     new_pyramid_feats.append(new_feat)
+        # # N, C, S, T
+        # pyramid_feats = torch.stack(new_pyramid_feats, dim=2)
+        #
+        # for i in range(3):
+        #     pyramid_feats = self.scaletime_blocks[i](pyramid_feats)
+        #
+        # pyramid_feats = torch.unbind(pyramid_feats, dim=2)
+        # new_pyramid_feats = list()
+        # for i, feat in enumerate(pyramid_feats):
+        #     t = original_shapes[i]
+        #     if i >= 1:
+        #         new_feat = F.interpolate(feat.unsqueeze(-1), (t, 1)).squeeze(-1)
+        #     else:
+        #         new_feat = feat
+        #     new_pyramid_feats.append(new_feat)
+        # pyramid_feats = new_pyramid_feats
+        #
+        # for i, feat in enumerate(pyramid_feats):
+        #     # prior = torch.Tensor([[(c + 0.5) / t] for c in range(t)]).view(-1, 1).to(feat.device)
+        #     # priors.append(prior)
+        #     loc_feat = self.loc_tower(feat)
+        #     conf_feat = self.conf_tower(feat)
+        #     locs.append(
+        #         self.loc_heads[i](self.loc_head(loc_feat))
+        #         .view(batch_num, 2, -1)
+        #         .permute(0, 2, 1).contiguous() * fpn_strides[i]
+        #     )
+        #     confs.append(
+        #         self.conf_head(conf_feat).view(batch_num, num_classes, -1)
+        #             .permute(0, 2, 1).contiguous()
+        #     )
+        #
+        #     t = feat.size(2)
+        #     with torch.no_grad():
+        #         segments = locs[-1] / self.frame_num * t
+        #         priors = self.priors[i][:, :1].expand(batch_num, t, 1).to(feat.device)
+        #         new_priors = torch.round(priors * t - 0.5)
+        #         plen = segments[:, :, :1] + segments[:, :, 1:]
+        #         in_plen = torch.clamp(plen / 4.0, min=1.0)
+        #         out_plen = torch.clamp(plen / 10.0, min=1.0)
+        #
+        #         l_segment = new_priors - segments[:, :, :1]
+        #         r_segment = new_priors + segments[:, :, 1:]
+        #         segments = torch.cat([
+        #             torch.round(l_segment - out_plen),
+        #             torch.round(l_segment + in_plen),
+        #             torch.round(r_segment - in_plen),
+        #             torch.round(r_segment + out_plen)
+        #         ], dim=-1)
+        #
+        #         decoded_segments = torch.cat(
+        #             [priors[:, :, :1] * self.frame_num - locs[-1][:, :, :1],
+        #              priors[:, :, :1] * self.frame_num + locs[-1][:, :, 1:]],
+        #             dim=-1)
+        #         plen = decoded_segments[:, :, 1:] - decoded_segments[:, :, :1] + 1.0
+        #         in_plen = torch.clamp(plen / 4.0, min=1.0)
+        #         out_plen = torch.clamp(plen / 10.0, min=1.0)
+        #         frame_segments = torch.cat([
+        #             torch.round(decoded_segments[:, :, :1] - out_plen),
+        #             torch.round(decoded_segments[:, :, :1] + in_plen),
+        #             torch.round(decoded_segments[:, :, 1:] - in_plen),
+        #             torch.round(decoded_segments[:, :, 1:] + out_plen)
+        #         ], dim=-1)
+        #
+        #     loc_prop_feat, loc_prop_feat_ = self.loc_proposal_branch(loc_feat, frame_level_feat,
+        #                                                              segments, frame_segments)
+        #     conf_prop_feat, conf_prop_feat_ = self.conf_proposal_branch(conf_feat, frame_level_feat,
+        #                                                                 segments, frame_segments)
+        #     if i == 0:
+        #         trip.extend([loc_prop_feat_.clone(), conf_prop_feat_.clone()])
+        #         ndim = loc_prop_feat_.size(1) // 2
+        #         start_loc_prop = loc_prop_feat_[:, :ndim, ].permute(0, 2, 1).contiguous()
+        #         end_loc_prop = loc_prop_feat_[:, ndim:, ].permute(0, 2, 1).contiguous()
+        #         start_conf_prop = conf_prop_feat_[:, :ndim, ].permute(0, 2, 1).contiguous()
+        #         end_conf_prop = conf_prop_feat_[:, ndim:, ].permute(0, 2, 1).contiguous()
+        #         if ssl:
+        #             return trip
+        #     prop_locs.append(self.prop_loc_head(loc_prop_feat).view(batch_num, 2, -1)
+        #                      .permute(0, 2, 1).contiguous())
+        #     prop_confs.append(self.prop_conf_head(conf_prop_feat).view(batch_num, num_classes, -1)
+        #                       .permute(0, 2, 1).contiguous())
+        #     centers.append(
+        #         self.center_head(loc_prop_feat).view(batch_num, 1, -1)
+        #             .permute(0, 2, 1).contiguous()
+        #     )
 
         loc = torch.cat([o.view(batch_num, -1, 2) for o in locs], 1)
         conf = torch.cat([o.view(batch_num, -1, num_classes) for o in confs], 1)
