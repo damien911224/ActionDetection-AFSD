@@ -27,6 +27,7 @@ def sub_processor(pid, files):
         target_file = os.path.join(output_dir, file_name + '.npy')
         cap = cv2.VideoCapture(os.path.join(video_dir, file))
         count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        print(file_name)
         imgs = []
         while True:
             ret, frame = cap.read()
@@ -39,10 +40,12 @@ def sub_processor(pid, files):
         print(imgs.shape)
         if max_frame_num is not None:
             imgs = imgs[:max_frame_num]
+        cap.close()
         np.save(target_file, imgs)
 
 processes = []
 video_num = len(files)
+print(video_num)
 per_process_video_num = video_num // thread_num
 
 for i in range(thread_num):
