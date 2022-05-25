@@ -311,6 +311,7 @@ class CoarsePyramid(nn.Module):
         T = pyramid_feats[0].shape[-1]
         original_shapes = list()
         new_pyramid_feats = list()
+        print("Convert T", T)
         for i, feat in enumerate(pyramid_feats):
             t = feat.shape[-1]
             original_shapes.append(t)
@@ -320,9 +321,11 @@ class CoarsePyramid(nn.Module):
             new_pyramid_feats.append(new_feat)
         # N, C, S, T
         pyramid_feats = torch.stack(new_pyramid_feats, dim=2)
+        print("Upscaled: ", pyramid_feats.shape)
 
         for i in range(3):
             pyramid_feats = self.scaletime_blocks[i](pyramid_feats)
+        print("ScaleTime:", pyramid_feats.shape)
 
         pyramid_feats = torch.unbind(pyramid_feats, dim=2)
         new_pyramid_feats = list()
@@ -334,6 +337,7 @@ class CoarsePyramid(nn.Module):
                 new_feat = feat
             new_pyramid_feats.append(new_feat)
         pyramid_feats = new_pyramid_feats
+        exit()
         split = 0
 
         # for i, feat in enumerate(pyramid_feats):

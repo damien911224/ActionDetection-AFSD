@@ -388,19 +388,25 @@ class ScaleTime(nn.Module):
         scale_x4 = self.scale_conv1(x)
 
         pooled = F.avg_pool2d(x, kernel_size=(5, 1), stride=(1, 1), padding=(2, 0))
+        print("Scale Pooled (1)", pooled.shape)
         # N, 4, S, T
         pooled = self.scale_selection(pooled)
+        print("Scale Pooled (2)", pooled.shape)
         # N, 1, 4, S, T
         pooled = F.softmax(pooled.unsqueeze(1), dim=2)
+        print("Scale Pooled (3)", pooled.shape)
         # N, C, 4, S, T
         outputs = torch.stack((scale_x1, scale_x2, scale_x3, scale_x4), dim=2)
+        print("Scale Outputs (1)", outputs.shape)
         # N, C, S, T
         outputs = torch.sum(pooled * outputs, dim=2).squeeze(2)
+        print("Scale Outputs (2)", outputs.shape)
         outputs = self.scale_final_conv(outputs)
         outputs = self.dropout1(outputs)
 
         outputs = outputs + x
         x = self.norm1(outputs)
+        print("Scale Outputs (3)", x.shape)
 
         time_x1 = self.time_conv1(x)
         time_x2 = self.time_conv1(x)
@@ -408,23 +414,30 @@ class ScaleTime(nn.Module):
         time_x4 = self.time_conv1(x)
 
         pooled = F.avg_pool2d(x, kernel_size=(1, 9), stride=(1, 1), padding=(0, 4))
+        print("Time Pooled (1)", pooled.shape)
         # N, 4, S, T
         pooled = self.time_selection(pooled)
+        print("Time Pooled (2)", pooled.shape)
         # N, 1, 4, S, T
         pooled = F.softmax(pooled.unsqueeze(1), dim=2)
+        print("Time Pooled (3)", pooled.shape)
         # N, C, 4, S, T
         outputs = torch.stack((time_x1, time_x2, time_x3, time_x4), dim=2)
+        print("Time Outputs (1)", outputs.shape)
         # N, C, S, T
         outputs = torch.sum(pooled * outputs, dim=2).squeeze(2)
+        print("Time Outputs (2)", outputs.shape)
         outputs = self.time_final_conv(outputs)
         outputs = self.dropout2(outputs)
 
         outputs = outputs + x
         x = self.norm2(outputs)
+        print("Time Outputs (3)", x.shape)
 
         outputs = self.feed_forward(x)
         outputs = self.dropout3(outputs)
         outputs = outputs + x
         outputs = self.norm3(outputs)
+        print("FF Outputs (1)", outputs.shape)
 
         return outputs
