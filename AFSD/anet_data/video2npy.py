@@ -35,6 +35,7 @@ def sub_processor(pid, files):
             imgs.append(frame[:, :, ::-1])
         if count != len(imgs):
             print(cap.isOpened())
+            print(count)
             print(len(imgs))
             print('{} frame num is less'.format(file_name))
         imgs = np.stack(imgs)
