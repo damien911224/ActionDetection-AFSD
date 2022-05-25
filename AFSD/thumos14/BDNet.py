@@ -6,7 +6,7 @@ import numpy as np
 
 from AFSD.common.i3d_backbone import InceptionI3d
 from AFSD.common.config import config
-from AFSD.common.layers import Unit1D, Unit3D
+from AFSD.common.layers import Unit1D, Unit3D, ScaleTime
 from AFSD.prop_pooling.boundary_pooling_op import BoundaryMaxPooling
 
 num_classes = config['dataset']['num_classes']
