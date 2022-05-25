@@ -223,7 +223,6 @@ class ScaleTime(nn.Module):
                       bias=True),
             nn.GroupNorm(32, channels),
             nn.ReLU(inplace=True)))
-        print("!!")
         self.scale_conv2 = nn.Sequential((
             nn.Conv2d(channels,
                       channels,
