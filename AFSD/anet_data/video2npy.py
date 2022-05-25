@@ -27,6 +27,7 @@ def sub_processor(pid, files):
         target_file = os.path.join(output_dir, file_name + '.npy')
         cap = cv2.VideoCapture(os.path.join(video_dir, file))
         count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        cap.set(2, 0.0)
         imgs = []
         while True:
             ret, frame = cap.read()
