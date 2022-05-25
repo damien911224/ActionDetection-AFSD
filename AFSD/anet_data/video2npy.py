@@ -40,7 +40,7 @@ def sub_processor(pid, files):
         print(imgs.shape)
         if max_frame_num is not None:
             imgs = imgs[:max_frame_num]
-        cap.close()
+        cap.release()
         np.save(target_file, imgs)
 
 processes = []
