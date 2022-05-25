@@ -254,7 +254,7 @@ class CoarsePyramid(nn.Module):
             self.priors.append(
                 torch.Tensor([[(c + 0.5) / t] for c in range(t)]).view(-1, 1)
             )
-            t = t // 2
+            # t = t // 2
 
         self.upscaling_layers = \
             nn.ModuleList((
