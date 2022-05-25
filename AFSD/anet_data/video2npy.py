@@ -31,6 +31,7 @@ def sub_processor(pid, files):
         imgs = []
         while True:
             ret, frame = cap.read()
+            print(ret)
             if not ret:
                 break
             imgs.append(frame[:, :, ::-1])
