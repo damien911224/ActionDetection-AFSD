@@ -213,7 +213,7 @@ class Unit1D(nn.Module):
 class ScaleTime(nn.Module):
     def __init__(self, channels):
         super(ScaleTime, self).__init__()
-        self.scale_conv1 = nn.Sequential((
+        self.scale_conv1 = nn.Sequential(
             nn.Conv2d(channels,
                       channels,
                       kernel_size=(1, 1),
@@ -222,8 +222,8 @@ class ScaleTime(nn.Module):
                       dilation=(1, 1),
                       bias=True),
             nn.GroupNorm(32, channels),
-            nn.ReLU(inplace=True)))
-        self.scale_conv2 = nn.Sequential((
+            nn.ReLU(inplace=True))
+        self.scale_conv2 = nn.Sequential(
             nn.Conv2d(channels,
                       channels,
                       kernel_size=(3, 1),
@@ -232,8 +232,8 @@ class ScaleTime(nn.Module):
                       dilation=(1, 1),
                       bias=True),
             nn.GroupNorm(32, channels),
-            nn.ReLU(inplace=True)))
-        self.scale_conv3 = nn.Sequential((
+            nn.ReLU(inplace=True))
+        self.scale_conv3 = nn.Sequential(
             nn.Conv2d(channels,
                       channels,
                       kernel_size=(3, 1),
@@ -242,8 +242,8 @@ class ScaleTime(nn.Module):
                       dilation=(2, 1),
                       bias=True),
             nn.GroupNorm(32, channels),
-            nn.ReLU(inplace=True)))
-        self.scale_conv4 = nn.Sequential((
+            nn.ReLU(inplace=True))
+        self.scale_conv4 = nn.Sequential(
             nn.Conv2d(channels,
                       channels,
                       kernel_size=(5, 1),
@@ -252,9 +252,9 @@ class ScaleTime(nn.Module):
                       dilation=(1, 1),
                       bias=True),
             nn.GroupNorm(32, channels),
-            nn.ReLU(inplace=True)))
+            nn.ReLU(inplace=True))
 
-        self.scale_selection = nn.Sequential((
+        self.scale_selection = nn.Sequential(
             nn.Conv2d(channels,
                       channels,
                       kernel_size=(1, 1),
@@ -271,8 +271,8 @@ class ScaleTime(nn.Module):
                       padding=(0, 0),
                       dilation=(1, 1),
                       bias=True)
-        ))
-        self.scale_final_conv = nn.Sequential((
+        )
+        self.scale_final_conv = nn.Sequential(
             nn.Conv2d(channels,
                       channels,
                       kernel_size=(1, 1),
@@ -281,9 +281,9 @@ class ScaleTime(nn.Module):
                       dilation=(1, 1),
                       bias=True),
             nn.GroupNorm(32, channels),
-            nn.ReLU(inplace=True)))
+            nn.ReLU(inplace=True))
 
-        self.time_conv1 = nn.Sequential((
+        self.time_conv1 = nn.Sequential(
             nn.Conv2d(channels,
                       channels,
                       kernel_size=(1, 3),
@@ -292,8 +292,8 @@ class ScaleTime(nn.Module):
                       dilation=(1, 1),
                       bias=True),
             nn.GroupNorm(32, channels),
-            nn.ReLU(inplace=True)))
-        self.time_conv2 = nn.Sequential((
+            nn.ReLU(inplace=True))
+        self.time_conv2 = nn.Sequential(
             nn.Conv2d(channels,
                       channels,
                       kernel_size=(1, 3),
@@ -302,8 +302,8 @@ class ScaleTime(nn.Module):
                       dilation=(1, 2),
                       bias=True),
             nn.GroupNorm(32, channels),
-            nn.ReLU(inplace=True)))
-        self.time_conv3 = nn.Sequential((
+            nn.ReLU(inplace=True))
+        self.time_conv3 = nn.Sequential(
             nn.Conv2d(channels,
                       channels,
                       kernel_size=(1, 3),
@@ -312,8 +312,8 @@ class ScaleTime(nn.Module):
                       dilation=(1, 3),
                       bias=True),
             nn.GroupNorm(32, channels),
-            nn.ReLU(inplace=True)))
-        self.time_conv4 = nn.Sequential((
+            nn.ReLU(inplace=True))
+        self.time_conv4 = nn.Sequential(
             nn.Conv2d(channels,
                       channels,
                       kernel_size=(1, 3),
@@ -322,9 +322,9 @@ class ScaleTime(nn.Module):
                       dilation=(1, 4),
                       bias=True),
             nn.GroupNorm(32, channels),
-            nn.ReLU(inplace=True)))
+            nn.ReLU(inplace=True))
 
-        self.time_selection = nn.Sequential((
+        self.time_selection = nn.Sequential(
             nn.Conv2d(channels,
                       channels,
                       kernel_size=(1, 1),
@@ -341,8 +341,8 @@ class ScaleTime(nn.Module):
                       padding=(0, 0),
                       dilation=(1, 1),
                       bias=True)
-        ))
-        self.time_final_conv = nn.Sequential((
+        )
+        self.time_final_conv = nn.Sequential(
             nn.Conv2d(channels,
                       channels,
                       kernel_size=(1, 1),
@@ -351,9 +351,9 @@ class ScaleTime(nn.Module):
                       dilation=(1, 1),
                       bias=True),
             nn.GroupNorm(32, channels),
-            nn.ReLU(inplace=True)))
+            nn.ReLU(inplace=True))
 
-        self.feed_forward = nn.Sequential((
+        self.feed_forward = nn.Sequential(
             nn.Conv2d(channels,
                       channels,
                       kernel_size=(1, 1),
@@ -371,7 +371,7 @@ class ScaleTime(nn.Module):
                       padding=(0, 0),
                       dilation=(1, 1),
                       bias=True)
-        ))
+        )
 
         self.norm1 = nn.GroupNorm(32, channels)
         self.dropout1 = nn.Dropout(0.1)
