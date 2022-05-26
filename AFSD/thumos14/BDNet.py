@@ -325,15 +325,15 @@ class CoarsePyramid(nn.Module):
             pyramid_feats = self.scaletime_blocks[i](pyramid_feats)
 
         pyramid_feats = torch.unbind(pyramid_feats, dim=2)
-        # new_pyramid_feats = list()
-        # for i, feat in enumerate(pyramid_feats):
-        #     t = original_shapes[i]
-        #     if i >= 1:
-        #         new_feat = F.interpolate(feat.unsqueeze(-1), (t, 1)).squeeze(-1)
-        #     else:
-        #         new_feat = feat
-        #     new_pyramid_feats.append(new_feat)
-        # pyramid_feats = new_pyramid_feats
+        new_pyramid_feats = list()
+        for i, feat in enumerate(pyramid_feats):
+            t = original_shapes[i]
+            if i >= 1:
+                new_feat = F.interpolate(feat.unsqueeze(-1), (t, 1)).squeeze(-1)
+            else:
+                new_feat = feat
+            new_pyramid_feats.append(new_feat)
+        pyramid_feats = new_pyramid_feats
         split = 0
 
         # for i, feat in enumerate(pyramid_feats):
