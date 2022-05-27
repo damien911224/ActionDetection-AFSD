@@ -15,8 +15,7 @@ freeze_bn_affine = config['model']['freeze_bn_affine']
 
 layer_num = 6
 conv_channels = 512
-# fpn_strides = [4, 8, 16, 32, 64, 128]
-fpn_strides = [4, 4, 4, 4, 4, 4]
+fpn_strides = [4, 8, 16, 32, 64, 128]
 feat_t = 768 // 8
 
 
@@ -247,7 +246,7 @@ class CoarsePyramid(nn.Module):
             self.priors.append(
                 torch.Tensor([[(c + 0.5) / t, i] for c in range(t)]).view(-1, 2)
             )
-            # t = t // 2
+            t = t // 2
 
         self.upscaling_layers = \
             nn.ModuleList((
@@ -285,15 +284,6 @@ class CoarsePyramid(nn.Module):
                 x = conv(x)
             pyramid_feats.append(x)
 
-        frame_level_feat = pyramid_feats[0].unsqueeze(-1)
-        frame_level_feat = F.interpolate(frame_level_feat, [self.frame_num, 1]).squeeze(-1)
-        frame_level_feat = self.deconv(frame_level_feat)
-        trip.append(frame_level_feat.clone())
-        start_feat = frame_level_feat[:, :256]
-        end_feat = frame_level_feat[:, 256:]
-        start = start_feat.permute(0, 2, 1).contiguous()
-        end = end_feat.permute(0, 2, 1).contiguous()
-
         split = 0
         T = pyramid_feats[0].shape[-1]
         original_shapes = list()
@@ -312,16 +302,25 @@ class CoarsePyramid(nn.Module):
             pyramid_feats = self.scaletime_blocks[i](pyramid_feats)
 
         pyramid_feats = torch.unbind(pyramid_feats, dim=2)
-        # new_pyramid_feats = list()
-        # for i, feat in enumerate(pyramid_feats):
-        #     t = original_shapes[i]
-        #     if i >= 1:
-        #         new_feat = F.interpolate(feat.unsqueeze(-1), (t, 1)).squeeze(-1)
-        #     else:
-        #         new_feat = feat
-        #     new_pyramid_feats.append(new_feat)
-        # pyramid_feats = new_pyramid_feats
+        new_pyramid_feats = list()
+        for i, feat in enumerate(pyramid_feats):
+            t = original_shapes[i]
+            if i >= 1:
+                new_feat = F.interpolate(feat.unsqueeze(-1), (t, 1)).squeeze(-1)
+            else:
+                new_feat = feat
+            new_pyramid_feats.append(new_feat)
+        pyramid_feats = new_pyramid_feats
         split = 0
+
+        frame_level_feat = pyramid_feats[0].unsqueeze(-1)
+        frame_level_feat = F.interpolate(frame_level_feat, [self.frame_num, 1]).squeeze(-1)
+        frame_level_feat = self.deconv(frame_level_feat)
+        trip.append(frame_level_feat.clone())
+        start_feat = frame_level_feat[:, :256]
+        end_feat = frame_level_feat[:, 256:]
+        start = start_feat.permute(0, 2, 1).contiguous()
+        end = end_feat.permute(0, 2, 1).contiguous()
 
         for i, feat in enumerate(pyramid_feats):
             # prior = torch.Tensor([[(c + 0.5) / t] for c in range(t)]).view(-1, 1).to(feat.device)
