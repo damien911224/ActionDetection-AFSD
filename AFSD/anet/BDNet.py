@@ -15,7 +15,8 @@ freeze_bn_affine = config['model']['freeze_bn_affine']
 
 layer_num = 6
 conv_channels = 512
-fpn_strides = [4, 8, 16, 32, 64, 128]
+# fpn_strides = [4, 8, 16, 32, 64, 128]
+fpn_strides = [4, 4, 4, 4, 4, 4]
 feat_t = 768 // 8
 
 
@@ -246,7 +247,7 @@ class CoarsePyramid(nn.Module):
             self.priors.append(
                 torch.Tensor([[(c + 0.5) / t, i] for c in range(t)]).view(-1, 2)
             )
-            t = t // 2
+            # t = t // 2
 
         self.upscaling_layers = \
             nn.ModuleList((
@@ -311,15 +312,15 @@ class CoarsePyramid(nn.Module):
             pyramid_feats = self.scaletime_blocks[i](pyramid_feats)
 
         pyramid_feats = torch.unbind(pyramid_feats, dim=2)
-        new_pyramid_feats = list()
-        for i, feat in enumerate(pyramid_feats):
-            t = original_shapes[i]
-            if i >= 1:
-                new_feat = F.interpolate(feat.unsqueeze(-1), (t, 1)).squeeze(-1)
-            else:
-                new_feat = feat
-            new_pyramid_feats.append(new_feat)
-        pyramid_feats = new_pyramid_feats
+        # new_pyramid_feats = list()
+        # for i, feat in enumerate(pyramid_feats):
+        #     t = original_shapes[i]
+        #     if i >= 1:
+        #         new_feat = F.interpolate(feat.unsqueeze(-1), (t, 1)).squeeze(-1)
+        #     else:
+        #         new_feat = feat
+        #     new_pyramid_feats.append(new_feat)
+        # pyramid_feats = new_pyramid_feats
         split = 0
 
         for i, feat in enumerate(pyramid_feats):
